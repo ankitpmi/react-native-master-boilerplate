@@ -13,6 +13,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "execa": "^9.3.0",
+    "fs-extra": "^11.2.0",
     "inquirer": "8.2.6"
   }
 }
