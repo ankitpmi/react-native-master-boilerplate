@@ -6,6 +6,9 @@ import { replaceInFile } from "replace-in-file"
 import { fileURLToPath } from "url"
 import { exec } from "child_process"
 import util from "util"
+import kleur from 'kleur';
+
+const {green, red} = kleur
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -17,11 +20,20 @@ const boilerplates = {
 
 const execAsync = util.promisify(exec)
 
+function loadingAnimation(
+  getText,
+  chars = ["⠙", "⠘", "⠰", "⠴", "⠤", "⠦", "⠆", "⠃", "⠋", "⠉"],
+  delay = 100
+) {
+  let x = 0;
+
+  return setInterval(function() {
+      process.stdout.write("\r" + chars[x++] + " " + getText());
+      x = x % chars.length;
+  }, delay);
+}
+
 async function main() {
-
-  
-
-
   const { projectName } = await inquirer.prompt([
     {
       type: "input",
@@ -49,11 +61,9 @@ async function main() {
     // if (!overwrite) {
     //   console.log("Operation aborted.");
     //   return;
-    // }
-
-    console.error(`The directory "${projectName}" already exists`);
-    
-    await fs.remove(destPath);
+    // }    
+    console.log(red().bold(`The directory "${projectName}" already exists`));
+    // await fs.remove(destPath);
     return
   }
 
@@ -81,13 +91,13 @@ async function main() {
     boilerplates[boilerplate]
   )
 
+  let loader
   try {
     if (boilerplate === "expo") {
       await fs.copy(srcPath, destPath)
-      console.log(
-        `Successfully set up ${boilerplate} boilerplate with project name ${projectName}.`
-      )
-
+      loader =loadingAnimation(() => `Setting up environment...`);      
+      clearInterval(loader);
+      loader =loadingAnimation(() => `Initializing new React Native project...`);
       if (await fs.pathExists(packageJsonPath)) {
         const packageJson = await fs.readJson(packageJsonPath)
         packageJson.name = projectName
@@ -98,17 +108,21 @@ async function main() {
         const appJson = await fs.readJson(appJsonPath)
         appJson.expo.name = projectName
         await fs.writeJson(appJsonPath, appJson, { spaces: 2 })
+        clearInterval(loader);
+        console.log('\n');
+        console.log(green().bold('React Native EXPO project created successfully.'));
       }
     } else {
       const projectDir = path.resolve(process.cwd())
-      console.log("Linking local boilerplate...")
+      loader =loadingAnimation(() => `Setting up environment...`);
       process.chdir(srcPath)
 
       try {
         await execAsync(`npm link`)
         process.chdir(projectDir)
         await execAsync(`npm link @mindinventory/react-native-boilerplate`)
-        console.log("Initializing new React Native project...")
+               
+        loader =loadingAnimation(() => `Initializing new React Native project...`);
         await execAsync(
           `npx react-native init ${projectName} --template @mindinventory/react-native-boilerplate --package-name ${packageId}`
         )
@@ -119,27 +133,29 @@ async function main() {
 
       // Verify if the project was created successfully
       if (await fs.pathExists(path.join(destPath, "package.json"))) {
-        console.log("React Native CLI project created successfully.")
-
         const packageJsonFileIsExist = await fs.pathExists(packageJsonPath)
-        console.log("packageJsonFileIsExist :::::: ", packageJsonFileIsExist)
         if (packageJsonFileIsExist) {
-          console.log("::::: CALLING :::::")
-
           const packageJson = await fs.readJson(packageJsonPath)
           packageJson.name = projectName
           await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 })
         }
+        clearInterval(loader);
+        console.log('\n');
+        
+        console.log(green().bold('React Native CLI project created successfully.'));
+
       } else {
         console.error("Failed to create React Native CLI project.")
         return
       }
     }
 
-    console.log("Project name and package ID set successfully.")
   } catch (err) {
     console.error("Error setting up boilerplate:", err)
   }
 }
 
 main()
+
+
+
