@@ -68,31 +68,52 @@ async function main() {
   }
 
 
-  const { boilerplate, packageId } = await inquirer.prompt([
+  const { boilerplate } = await inquirer.prompt([
     {
       type: "list",
       name: "boilerplate",
       message: "Select the boilerplate to use:",
-      choices: ["expo", "rncli"],
-    },
-    {
-      type: "input",
-      name: "packageId",
-      message: "Enter the package ID (e.g., com.myapp):",
-      validate: (input) =>
-        /^[a-zA-Z]+\.[a-zA-Z]+/.test(input) ? true : "Package ID is not valid",
-      default: `com.${projectName.toLowerCase()}`,
-    },
+      choices: ["expo", "bare react native"],
+
+    }
+    
   ])
+
+  // const {  packageId } = await inquirer.prompt([   
+  //   {
+  //     type: "input",
+  //     name: "packageId",
+  //     message: "Enter the package ID (e.g., com.myapp):",
+  //     validate: (input) =>
+  //       /^[a-zA-Z]+\.[a-zA-Z]+/.test(input) ? true : "Package ID is not valid",
+  //     default: `com.${projectName.toLowerCase()}`,
+  //   },
+  // ])
+  let packageId = null;
+  if (boilerplate === 'bare react native') {
+    const response = await inquirer.prompt([   
+      {
+        type: "input",
+        name: "packageId",
+        message: "Enter the package ID (e.g., com.myapp):",
+        validate: (input) =>
+          /^[a-zA-Z]+\.[a-zA-Z]+/.test(input) ? true : "Package ID is not valid",
+        default: `com.${projectName.toLowerCase()}`,
+      },
+    ]);
+    packageId = response.packageId;
+  }
+
+  const selectedType = boilerplate === "bare react native" ? "rncli" : boilerplate;
 
   const srcPath = path.resolve(
     __dirname,
     "templates",
-    boilerplates[boilerplate]
+    boilerplates[selectedType]
   )
 
-  let loader
   try {
+    let loader
     if (boilerplate === "expo") {
       await fs.copy(srcPath, destPath)
       loader =loadingAnimation(() => `Setting up environment...`);      
@@ -113,41 +134,48 @@ async function main() {
         console.log(green().bold('React Native EXPO project created successfully.'));
       }
     } else {
-      const projectDir = path.resolve(process.cwd())
-      loader =loadingAnimation(() => `Setting up environment...`);
-      process.chdir(srcPath)
-
-      try {
-        await execAsync(`npm link`)
-        process.chdir(projectDir)
-        await execAsync(`npm link @mindinventory/react-native-boilerplate`)
-               
-        loader =loadingAnimation(() => `Initializing new React Native project...`);
-        await execAsync(
-          `npx react-native init ${projectName} --template @mindinventory/react-native-boilerplate --package-name ${packageId}`
-        )
-      } catch (error) {
-        console.error("Error during project setup:", error)
-        return
-      }
-
-      // Verify if the project was created successfully
-      if (await fs.pathExists(path.join(destPath, "package.json"))) {
-        const packageJsonFileIsExist = await fs.pathExists(packageJsonPath)
-        if (packageJsonFileIsExist) {
-          const packageJson = await fs.readJson(packageJsonPath)
-          packageJson.name = projectName
-          await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 })
+      if (projectName && packageId) {
+        let loader
+        const projectDir = path.resolve(process.cwd())
+        loader =loadingAnimation(() => `Setting up environment...`);
+        process.chdir(srcPath)
+  
+        try {
+          await execAsync(`npm link`)
+          process.chdir(projectDir)
+          await execAsync(`npm link @mindinventory/react-native-boilerplate`)
+          clearInterval(loader);  
+          loader =loadingAnimation(() => `Initializing new React Native project...`);
+          await execAsync(
+            `npx react-native init ${projectName} --template @mindinventory/react-native-boilerplate --package-name ${packageId}`
+          )
+        } catch (error) {
+          console.error("Error during project setup:", error)
+          return
         }
-        clearInterval(loader);
-        console.log('\n');
-        
-        console.log(green().bold('React Native CLI project created successfully.'));
-
-      } else {
-        console.error("Failed to create React Native CLI project.")
+  
+        // Verify if the project was created successfully
+        if (await fs.pathExists(path.join(destPath, "package.json"))) {
+          const packageJsonFileIsExist = await fs.pathExists(packageJsonPath)
+          if (packageJsonFileIsExist) {
+            const packageJson = await fs.readJson(packageJsonPath)
+            packageJson.name = projectName
+            await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 })
+          }
+          execAsync("git init", { stdio: "inherit" });
+          clearInterval(loader);
+          console.log('\n');
+          
+          console.log(green().bold('React Native CLI project created successfully.'));
+  
+        } else {
+          console.error("Failed to create React Native CLI project.")
+          return
+        }
+      }else {
         return
       }
+     
     }
 
   } catch (err) {

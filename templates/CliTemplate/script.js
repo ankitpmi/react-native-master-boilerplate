@@ -29,7 +29,7 @@ const renameNpmignoreToGitignore = () => {
 };
 
 const main = () => {
-  execSync("git init", { stdio: "inherit" });
+  // execSync("git init", { stdio: "inherit" });
   installDependencies();
   renameNpmignoreToGitignore();
 };
