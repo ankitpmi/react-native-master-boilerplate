@@ -106,13 +106,22 @@ async function main() {
       if (await fs.pathExists(appJsonPath)) {
         const appJson = await fs.readJson(appJsonPath)
         appJson.expo.name = projectName
-        await fs.writeJson(appJsonPath, appJson, { spaces: 2 })
-        clearInterval(loader)
-        console.log("\n")
-        console.log(
-          green().bold("React Native EXPO project created successfully.")
-        )
+        await fs.writeJson(appJsonPath, appJson, { spaces: 2 })       
       }
+
+      process.chdir(destPath)
+
+      await execAsync("yarn");
+      await execAsync("git init", { stdio: "inherit" });
+      await execAsync("git add .");
+      await execAsync(`git commit -m 'Initial commit'`);
+
+
+      clearInterval(loader)
+      console.log("\n")
+      console.log(
+        green().bold("React Native EXPO project created successfully.")
+      )
     } else {
       if (projectName && packageId) {
         let loader
@@ -152,7 +161,7 @@ async function main() {
             await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 })
           }
           process.chdir(destPath)
-
+          await execAsync("yarn");          
           await execAsync("git init", { stdio: "inherit" });
           await execAsync("git add .");
           await execAsync(`git commit -m 'Initial commit'`);
@@ -178,3 +187,5 @@ async function main() {
 }
 
 main()
+
+
