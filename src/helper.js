@@ -1,6 +1,7 @@
 
 import kleur from "kleur"
 import ora from 'ora';
+import figlet from 'figlet'
 
 
 const { red, green, yellow } = kleur
@@ -18,4 +19,26 @@ export const logSuccess = (message) => {
 
 export const loading = (text) => {
     return ora(`${text}`)
+}
+
+export const textBanners = () => {
+  return figlet.text(
+    "M I",
+    {
+      font: "Doh",
+      horizontalLayout: "full",
+      verticalLayout: "default",
+      width: 90,
+      whitespaceBreak: true,
+    
+    },
+    function (err, data) {
+      if (err) {
+        console.log("Something went wrong...");
+        console.dir(err);
+        return;
+      }
+      console.log(data);
+    }
+  );
 }
