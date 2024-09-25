@@ -6,7 +6,8 @@ import { exec } from "child_process"
 import util from "util"
 import kleur from "kleur"
 import  {getProjectName, getBoilerplateType, getPackageId}  from "./src/prompts.js"
-import {logSuccess} from './src/helper.js'
+import {loading} from './src/helper.js'
+import figlet from 'figlet'
 
 const { green } = kleur
 
@@ -19,19 +20,6 @@ const boilerplates = {
 }
 
 const execAsync = util.promisify(exec)
-
-function loadingAnimation(
-  getText,
-  chars = ["⠙", "⠘", "⠰", "⠴", "⠤", "⠦", "⠆", "⠃", "⠋", "⠉"],
-  delay = 100
-) {
-  let x = 0
-
-  return setInterval(function () {
-    process.stdout.write("\r" + chars[x++] + " " + getText())
-    x = x % chars.length
-  }, delay)
-}
 
 async function main() {
   const { projectName } = await getProjectName()
@@ -61,14 +49,29 @@ async function main() {
   )
 
   try {
-    let loader
+    figlet.text(
+      "M I",
+      {
+        font: "Doh",
+        horizontalLayout: "full",
+        verticalLayout: "default",
+        width: 90,
+        whitespaceBreak: true,
+      
+      },
+      function (err, data) {
+        if (err) {
+          console.log("Something went wrong...");
+          console.dir(err);
+          return;
+        }
+        console.log(data);
+      }
+    );
+    
     if (boilerplate === "expo") {
+      let initLoading = loading('Setting up environment...').start()
       await fs.copy(srcPath, destPath)
-      loader = loadingAnimation(() => `Setting up environment...`)
-      clearInterval(loader)
-      loader = loadingAnimation(
-        () => `Initializing new React Native project...`
-      )
       if (await fs.pathExists(packageJsonPath)) {
         const packageJson = await fs.readJson(packageJsonPath)
         packageJson.name = projectName
@@ -81,31 +84,26 @@ async function main() {
         appJson.expo.slug = projectName
         await fs.writeJson(appJsonPath, appJson, { spaces: 2 })       
       }
-
+      initLoading.info()
       process.chdir(destPath)
 
-      logSuccess('dependency installing...')
+      let installDepenLoading = loading('dependency installing...').start()
       await execAsync("yarn",{stdio: 'inherit'});
-      logSuccess('dependency install successfully...')
+      installDepenLoading.succeed('dependency install successfully...')
       await execAsync("git init", { stdio: "inherit" });
       await execAsync("git add .");
       await execAsync(`git commit -m 'Initial commit'`);
 
 
-      clearInterval(loader)
       console.log("\n")
       console.log(
-        green().bold("React Native EXPO project created successfully.")
+        green().bold("Project created successfully.")
       )
     } else {
       if (projectName && packageId) {
 
+        let initLoading = loading('Setting up environment...').start()
         await fs.copy(srcPath, destPath)
-        loader = loadingAnimation(() => `Setting up environment...`)
-        clearInterval(loader)
-        loader = loadingAnimation(
-          () => `Initializing new React Native project...`
-        )
         if (await fs.pathExists(packageJsonPath)) {
           const packageJson = await fs.readJson(packageJsonPath)
           packageJson.name = projectName
@@ -120,24 +118,22 @@ async function main() {
           appJson.expo.android.package = packageId
           await fs.writeJson(appJsonPath, appJson, { spaces: 2 })       
         }
-        clearInterval(loader)
+        initLoading.info()
         process.chdir(destPath) 
-        console.log('process.cwd() ::: ', process.cwd());
-        
-        logSuccess('dependency installing...') 
+        let installDepenLoading = loading('dependency installing...').start()
         await execAsync("yarn", {});
-        logSuccess('dependency install successfully...')
-        await execAsync(`npx expo install expo-dev-client`)            
+        await execAsync(`npx expo install expo-dev-client`)   
+        installDepenLoading.succeed('dependency install successfully...')    
+        let preBuildLoading = loading('Prebuild is in process...').start()
         await execAsync(`npx expo prebuild`)
         await execAsync("git init", { stdio: "inherit" });
         await execAsync("git add .");
         await execAsync(`git commit -m 'Initial commit'`);
+        preBuildLoading.succeed('Prebuild is in process done!! ...')
   
-  
-        clearInterval(loader)
         console.log("\n")
         console.log(
-          green().bold("React Native EXPO project created successfully.")
+          green().bold("Project created successfully.")
         )        
       } else {
         return

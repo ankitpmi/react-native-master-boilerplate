@@ -1,5 +1,7 @@
 
 import kleur from "kleur"
+import ora from 'ora';
+
 
 const { red, green, yellow } = kleur
 
@@ -12,4 +14,8 @@ export const logWarning = (message) => {
 }
 export const logSuccess = (message) => {  
   console.log(green().bold(`[SUCCESS] ${message}`))  
+}
+
+export const loading = (text) => {
+    return ora(`${text}`)
 }
