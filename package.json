@@ -17,6 +17,7 @@
     "fs-extra": "^11.2.0",
     "inquirer": "8.2.6",
     "kleur": "^4.1.5",
+    "ora": "^8.1.0",
     "replace-in-file": "^8.1.0"
   },
   "type": "module"
